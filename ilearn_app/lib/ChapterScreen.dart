@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'ChapterItem.dart';
-import '../widgets/BottomNavBar.dart';
 
 class ChaptersScreen extends StatelessWidget {
   const ChaptersScreen({super.key});
@@ -62,7 +61,6 @@ class ChaptersScreen extends StatelessWidget {
               },
             ),
           ),
-          const BottomNavBar(),
         ],
       ),
     );

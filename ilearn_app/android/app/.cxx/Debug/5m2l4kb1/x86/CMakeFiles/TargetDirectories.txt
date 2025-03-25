@@ -1,0 +1,2 @@
+C:/PROJECT/ilearn_new-4/ilearn_app/android/app/.cxx/Debug/5m2l4kb1/x86/CMakeFiles/edit_cache.dir
+C:/PROJECT/ilearn_new-4/ilearn_app/android/app/.cxx/Debug/5m2l4kb1/x86/CMakeFiles/rebuild_cache.dir

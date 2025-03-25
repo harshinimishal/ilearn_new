@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../widgets/BottomNavBar.dart';
 
 class FlashcardsScreen extends StatefulWidget {
   const FlashcardsScreen({super.key});
@@ -62,7 +61,6 @@ class _FlashcardsScreenState extends State<FlashcardsScreen> {
               },
             ),
           ),
-          const BottomNavBar(),
         ],
       ),
     );

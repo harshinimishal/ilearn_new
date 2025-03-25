@@ -4,7 +4,6 @@ import '../widgets/custom_input_field.dart';
 import '../widgets/PrimaryButton.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-
 class ForgetPasswordScreen extends StatefulWidget {
   const ForgetPasswordScreen({super.key});
 
@@ -15,27 +14,57 @@ class ForgetPasswordScreen extends StatefulWidget {
 class _ForgetPasswordScreenState extends State<ForgetPasswordScreen> {
   final TextEditingController emailController = TextEditingController();
   bool isEmailValid = false;
+  bool isLoading = false; 
+
+  void validateEmail(String value) {
+    setState(() {
+      isEmailValid = RegExp(r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$").hasMatch(value);
+    });
+  }
 
   Future<void> sendOtp() async {
-    if (!isEmailValid) return;
+    if (!isEmailValid || isLoading) return;
 
-    final response = await http.post(
-      Uri.parse("http://your-server-ip:5000/send-otp"), // Replace with actual backend URL
-      headers: {"Content-Type": "application/json"},
-      body: jsonEncode({"email": emailController.text}),
-    );
+    setState(() {
+      isLoading = true;
+    });
 
-    if (response.statusCode == 200) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => VerificationCodeScreen(email: emailController.text),
-        ),
+    final String apiUrl = "https://nmcy3n488d.execute-api.ap-south-1.amazonaws.com/execute";
+    
+    try {
+      final response = await http.post(
+        Uri.parse(apiUrl),
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode({"email": emailController.text}),
       );
-    } else {
+
+      print("API Response: ${response.body}");
+
+      if (response.statusCode == 200) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => VerificationCodeScreen(email: emailController.text),
+          ),
+        );
+      } else {
+        // Extract message from response if available
+        final responseBody = jsonDecode(response.body);
+        String errorMessage = responseBody['message'] ?? "Failed to send OTP. Please try again.";
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(errorMessage)),
+        );
+      }
+    } catch (e) {
+      print("Error: $e");
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Failed to send OTP. Please try again.")),
+        SnackBar(content: Text("Error: ${e.toString()}")),
       );
+    } finally {
+      setState(() {
+        isLoading = false;
+      });
     }
   }
 
@@ -78,16 +107,14 @@ class _ForgetPasswordScreenState extends State<ForgetPasswordScreen> {
                       controller: emailController,
                       icon: Icons.email_outlined,
                       hint: 'Enter your email',
-                      onChanged: (value) {
-                        setState(() {
-                          isEmailValid = value.contains('@') && value.contains('.');
-                        });
-                      },
+                      onChanged: validateEmail,
                     ),
                     const SizedBox(height: 40),
                     PrimaryButton(
-                      text: 'Continue',
-                      onPressed: isEmailValid ? () => sendOtp() : () {},
+                      text: isLoading ? 'Sending OTP...' : 'Continue',
+                      onPressed: () {
+                        if (!isLoading) sendOtp();
+                      },
                     ),
                     const SizedBox(height: 16),
                     TextButton(

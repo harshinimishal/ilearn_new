@@ -1,218 +1,191 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
-class ProfileScreen extends StatelessWidget {
-  const ProfileScreen({super.key});
+class ProfileScreen extends StatefulWidget {
+  final String userName;
+
+  const ProfileScreen({super.key, required this.userName});
+
+  @override
+  _ProfileScreenState createState() => _ProfileScreenState();
+}
+
+class _ProfileScreenState extends State<ProfileScreen> {
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  Map<String, dynamic> userData = {};
+  bool isEditing = false;
+  bool isProfileComplete = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchUserData();
+  }
+
+  void _fetchUserData() async {
+    String uid = _auth.currentUser!.uid;
+    DocumentSnapshot userDoc = await _firestore.collection('users').doc(uid).get();
+    setState(() {
+      userData = userDoc.data() as Map<String, dynamic>;
+      _checkProfileCompletion();
+    });
+  }
+
+  void _updateUserData() async {
+    String uid = _auth.currentUser!.uid;
+    await _firestore.collection('users').doc(uid).update(userData);
+    setState(() {
+      isEditing = false;
+      _checkProfileCompletion();
+    });
+  }
+
+  void _checkProfileCompletion() {
+    isProfileComplete = userData.containsKey('age') &&
+        userData.containsKey('contact') &&
+        userData.containsKey('schoolName') &&
+        userData['age'].toString().isNotEmpty &&
+        userData['contact'].toString().isNotEmpty &&
+        userData['schoolName'].toString().isNotEmpty;
+  }
+
+  void _logout() async {
+    await _auth.signOut();
+    Navigator.pushReplacementNamed(context, '/login');
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: const Color(0xFF1A237E),
-        leading: IconButton(
-          icon: const Icon(Icons.menu),
-          onPressed: () {},
-        ),
+        title: const Text("Profile"),
+        backgroundColor: Colors.blueAccent,
         actions: [
           IconButton(
-            icon: const Icon(Icons.search),
-            onPressed: () {},
+            icon: Icon(isEditing ? Icons.save : Icons.edit),
+            onPressed: () {
+              if (isEditing) {
+                _updateUserData();
+              }
+              setState(() {
+                isEditing = !isEditing;
+              });
+            },
           ),
-          const CircleAvatar(
-            backgroundColor: Color(0xFF00875A),
-            child: Text('A', style: TextStyle(color: Colors.white)),
-          ),
-          const SizedBox(width: 10),
         ],
       ),
-      body: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Center(
-                child: Column(
-                  children: [
-                    Stack(
+      body: userData.isEmpty
+          ? const Center(child: CircularProgressIndicator())
+          : SingleChildScrollView(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Column(
                       children: [
-                        const CircleAvatar(
-                          radius: 40,
-                          backgroundColor: Color(0xFF00875A),
-                          child: Text(
-                            'A',
-                            style: TextStyle(fontSize: 30, color: Colors.white),
+                        CircleAvatar(
+                          radius: 50,
+                          backgroundColor: isProfileComplete ? Colors.green : Colors.grey,
+                          child: Icon(
+                            isProfileComplete ? Icons.check_circle : Icons.person,
+                            size: 50,
+                            color: Colors.white,
                           ),
                         ),
-                        Positioned(
-                          right: 0,
-                          bottom: 0,
-                          child: Container(
-                            padding: const EdgeInsets.all(4),
-                            decoration: const BoxDecoration(
-                              color: Color(0xFF1A237E),
-                              shape: BoxShape.circle,
-                            ),
-                            child: const Icon(
-                              Icons.edit,
-                              size: 16,
-                              color: Colors.white,
-                            ),
-                          ),
-                        ),
+                        const SizedBox(height: 10),
+                        Text(userData['name'] ?? "User", style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+                        Text(userData['email'] ?? "", style: TextStyle(color: Colors.grey[600])),
                       ],
                     ),
-                    const SizedBox(height: 8),
-                    const Text(
-                      'Arya Anil Pawar',
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF1A237E),
-                      ),
-                    ),
-                    const Text(
-                      'Grade A Student | Parle Tilak Vidyalaya',
-                      style: TextStyle(
-                        color: Colors.grey,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 24),
-              const Text(
-                'Personal Information :',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF1A237E),
-                ),
-              ),
-              const SizedBox(height: 16),
-              _buildInfoField('username :', 'aryapawar06'),
-              _buildInfoField('name :', 'Arya Pawar'),
-              _buildInfoField('email :', 'abc@gmail.com'),
-              _buildInfoField('password :', '••••••••••'),
-              _buildInfoField('gender :', 'Female'),
-              _buildInfoField('school name :', 'Parle Tilak Vidyalaya'),
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  Expanded(
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF00875A),
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                      ),
-                      onPressed: () {},
-                      child: const Text('Edit Details'),
-                    ),
                   ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF00875A),
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                      ),
-                      onPressed: () {},
-                      child: const Text('Discard changes'),
-                    ),
+                  const SizedBox(height: 20),
+                  _buildField("Contact", 'contact'),
+                  _buildField("Age", 'age'),
+                  _buildField("School", 'schoolName'),
+                  const SizedBox(height: 20),
+                  isProfileComplete ? _buildDashboard() : _buildLockedDashboard(),
+                  const SizedBox(height: 20),
+                  _buildSettingsOptions(),
+                  const SizedBox(height: 20),
+                  ElevatedButton(
+                    onPressed: _logout,
+                    style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                    child: const Text('Logout'),
                   ),
                 ],
               ),
-              const SizedBox(height: 24),
-              const Text(
-                'Account Settings :',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF1A237E),
-                ),
-              ),
-              const SizedBox(height: 16),
-              _buildSettingsTile('Student Rewards'),
-              _buildSettingsTile('Language Settings'),
-              _buildSettingsTile('Notifications'),
-              _buildSettingsTile('Time Management'),
-              _buildSettingsTile('Help'),
-              const SizedBox(height: 16),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF1A237E),
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                  ),
-                  onPressed: () {},
-                  child: const Text('Log Out'),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-      bottomNavigationBar: BottomNavigationBar(
-        type: BottomNavigationBarType.fixed,
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: ''),
-          BottomNavigationBarItem(icon: Icon(Icons.smart_toy), label: ''),
-          BottomNavigationBarItem(icon: Icon(Icons.camera), label: ''),
-          BottomNavigationBarItem(icon: Icon(Icons.person), label: ''),
-        ],
-        selectedItemColor: const Color(0xFF00875A),
-      ),
+            ),
     );
   }
 
-  Widget _buildInfoField(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            label,
-            style: const TextStyle(
-              color: Color(0xFF1A237E),
-            ),
-          ),
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: const Color(0xFF1A237E),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Text(
-              value,
-              style: const TextStyle(color: Colors.white),
-            ),
-          ),
-        ],
-      ),
+  Widget _buildField(String label, String key) {
+    return ListTile(
+      title: Text(label, style: const TextStyle(fontWeight: FontWeight.bold)),
+      subtitle: isEditing
+          ? TextFormField(
+              initialValue: userData[key],
+              onChanged: (value) => userData[key] = value,
+            )
+          : Text(userData[key] ?? "Not provided"),
     );
   }
 
-  Widget _buildSettingsTile(String title) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      width: double.infinity,
-      child: ElevatedButton(
-        style: ElevatedButton.styleFrom(
-          backgroundColor: const Color(0xFF00875A),
-          padding: const EdgeInsets.symmetric(vertical: 16),
-        ),
-        onPressed: () {},
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+  Widget _buildDashboard() {
+    return Card(
+      elevation: 4,
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(title),
-            const Icon(Icons.chevron_right),
+            const Text('Dashboard', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 10),
+            Text('Quizzes Attempted: ${userData['quizzesAttempted'] ?? 0}'),
+            Text('Marks Scored: ${userData['marksScored'] ?? 0}'),
+            Text('Videos Watched: ${userData['videosWatched'] ?? 0}'),
           ],
         ),
       ),
     );
   }
-}
 
+  Widget _buildLockedDashboard() {
+    return Card(
+      elevation: 4,
+      color: Colors.grey[300],
+      child: const Padding(
+        padding: EdgeInsets.all(16.0),
+        child: Center(
+          child: Text(
+            'Complete your profile to unlock the dashboard!',
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.red),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSettingsOptions() {
+    return Column(
+      children: [
+        _buildSettingsTile(Icons.language, "Change Language", () {}),
+        _buildSettingsTile(Icons.settings, "Account Settings", () {}),
+        _buildSettingsTile(Icons.video_library, "Saved Videos", () {}),
+        _buildSettingsTile(Icons.help_outline, "Help Center", () {}),
+        _buildSettingsTile(Icons.info_outline, "About This App", () {}),
+      ],
+    );
+  }
+
+  Widget _buildSettingsTile(IconData icon, String title, VoidCallback onTap) {
+    return ListTile(
+      leading: Icon(icon, color: Colors.blueAccent),
+      title: Text(title),
+      trailing: const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
+      onTap: onTap,
+    );
+  }
+}

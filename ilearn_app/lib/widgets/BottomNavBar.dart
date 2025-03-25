@@ -3,7 +3,9 @@ import '/HomeScreen.dart';
 import '/ProfileScreen.dart';
 
 class BottomNavBar extends StatefulWidget {
-  const BottomNavBar({super.key});
+  final String userName;
+
+  const BottomNavBar({super.key, required this.userName});
 
   @override
   _BottomNavBarState createState() => _BottomNavBarState();
@@ -12,77 +14,53 @@ class BottomNavBar extends StatefulWidget {
 class _BottomNavBarState extends State<BottomNavBar> {
   int _selectedIndex = 0;
 
-  void _onItemTapped(BuildContext context, int index) {
+  void _onItemTapped(int index) {
+    if (_selectedIndex == index) return; // Prevent unnecessary rebuilds
+
     setState(() {
       _selectedIndex = index;
     });
 
-    // Navigate to the corresponding screen
+    Widget screen;
     switch (index) {
       case 0:
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => const HomeScreen(userName: 'defaultUserName')),
-        );
+        screen = HomeScreen(userName: widget.userName);
         break;
       case 1:
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => const HomeScreen(userName: 'defaultUserName')),
-        );
+        screen = HomeScreen(userName: widget.userName); // Replace with correct screen
         break;
       case 2:
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => const HomeScreen(userName: 'defaultUserName')),
-        );
+        screen = HomeScreen(userName: widget.userName); // Replace with correct screen
         break;
       case 3:
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => const ProfileScreen()),
-        );
+        screen = ProfileScreen(userName: widget.userName);
         break;
+      default:
+        screen = HomeScreen(userName: widget.userName);
     }
+
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (context) => screen),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withOpacity(0.2),
-            spreadRadius: 1,
-            blurRadius: 10,
-            offset: const Offset(0, -1),
-          ),
-        ],
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: [
-          _buildNavItem(Icons.home, 0, context),
-          _buildNavItem(Icons.smart_toy, 1, context),
-          _buildNavItem(Icons.qr_code_scanner, 2, context),
-          _buildNavItem(Icons.person, 3, context),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildNavItem(IconData icon, int index, BuildContext context) {
-    return GestureDetector(
-      onTap: () => _onItemTapped(context, index),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 12),
-        child: Icon(
-          icon,
-          color: _selectedIndex == index ? const Color(0xFF097D66) : Colors.grey,
-          size: 28,
-        ),
-      ),
+    return BottomNavigationBar(
+      currentIndex: _selectedIndex,
+      onTap: _onItemTapped,
+      selectedItemColor: const Color(0xFF097D66),
+      unselectedItemColor: Colors.grey,
+      showSelectedLabels: true,
+      showUnselectedLabels: false,
+      type: BottomNavigationBarType.fixed,
+      items: const [
+        BottomNavigationBarItem(icon: Icon(Icons.home), label: "Home"),
+        BottomNavigationBarItem(icon: Icon(Icons.smart_toy), label: "AI"),
+        BottomNavigationBarItem(icon: Icon(Icons.qr_code_scanner), label: "Scan"),
+        BottomNavigationBarItem(icon: Icon(Icons.person), label: "Profile"),
+      ],
     );
   }
 }
